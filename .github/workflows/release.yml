@@ -1,0 +1,50 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: swiftc ringbridge.swift -o ringbridge -O
+
+      - name: Package
+        run: tar czf ringbridge-${{ github.ref_name }}-arm64.tar.gz ringbridge
+
+      - name: Get SHA256
+        id: sha
+        run: echo "sha256=$(shasum -a 256 ringbridge-${{ github.ref_name }}-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ringbridge-${{ github.ref_name }}-arm64.tar.gz
+          body: |
+            ## Install
+
+            ```bash
+            brew install savikko/tap/jx05presenter
+            ```
+
+            Binary SHA256: `${{ steps.sha.outputs.sha256 }}`
+
+      - name: Update Homebrew formula
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/savikko/homebrew-tap.git /tmp/tap
+          cd /tmp/tap
+          sed -i '' "s|url \".*\"|url \"https://github.com/savikko/jx05presenter/releases/download/${{ github.ref_name }}/ringbridge-${{ github.ref_name }}-arm64.tar.gz\"|" Formula/jx05presenter.rb
+          sed -i '' "s|sha256 \".*\"|sha256 \"${{ steps.sha.outputs.sha256 }}\"|" Formula/jx05presenter.rb
+          sed -i '' "s|version \".*\"|version \"${GITHUB_REF_NAME#v}\"|" Formula/jx05presenter.rb
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add Formula/jx05presenter.rb
+          git commit -m "Update formula to ${{ github.ref_name }}"
+          git push

@@ -72,7 +72,17 @@ ringbridge
 
 ### Accessibility Permission
 
-The first time you run it, macOS will ask you to grant Accessibility permissions (System Settings > Privacy & Security > Accessibility). This is required for the tool to inject keystrokes.
+The first time you press a button on the ring, macOS will show a permission dialog. To enable it:
+
+1. Click **"Open System Settings"** in the dialog
+2. In **Privacy & Security > Accessibility**, enable **ringbridge**
+3. You may need to restart the service after granting permission:
+
+```bash
+brew services restart jx05presenter
+```
+
+This is required for the tool to inject keystrokes.
 
 ## How it works
 
