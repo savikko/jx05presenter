@@ -1,5 +1,7 @@
 # JX-05 Presenter
 
+<img src="jx05-ring.png" alt="JX-05 Ring Remote" width="200" align="right">
+
 A macOS utility that turns the JX-05 Bluetooth ring remote into a presentation controller. Swipe clockwise to go to the next slide, counter-clockwise for the previous slide.
 
 The JX-05 ring registers as a BLE digitizer/touchpad rather than a keyboard, which means it doesn't work out of the box with presentation software. This tool bridges the gap by reading the ring's raw HID touch events and converting swipe gestures into Page Down / Page Up keystrokes.
