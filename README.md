@@ -45,18 +45,30 @@ This copies the binary to `/usr/local/bin/ringbridge`.
 ## Usage
 
 1. Pair the JX-05 ring with your Mac via Bluetooth Settings
-2. Run the bridge:
+2. Start the service:
 
 ```bash
-./ringbridge
+brew services start jx05presenter
 ```
+
+   This runs in the background and starts automatically on login.
 
 3. Open your presentation and use the ring's up/down buttons:
    - One direction = **Next slide** (Page Down)
    - Other direction = **Previous slide** (Page Up)
    - Try both to see which is which — it depends on how you wear the ring
 
-4. Press `Ctrl+C` to stop
+To stop the service:
+
+```bash
+brew services stop jx05presenter
+```
+
+To run manually instead (foreground):
+
+```bash
+ringbridge
+```
 
 ### Accessibility Permission
 
@@ -84,6 +96,14 @@ You can adjust these constants in `ringbridge.swift`:
 | Delta threshold | `800` | Minimum Y-axis movement to trigger (in `checkSwipe()`) |
 
 ## Uninstall
+
+### Homebrew
+
+```bash
+brew uninstall jx05presenter
+```
+
+### From source
 
 ```bash
 sudo make uninstall
