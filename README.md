@@ -2,9 +2,9 @@
 
 <img src="jx05-ring.png" alt="JX-05 Ring Remote" width="200" align="right">
 
-A macOS utility that turns the JX-05 Bluetooth ring remote into a presentation controller. Swipe clockwise to go to the next slide, counter-clockwise for the previous slide.
+A macOS utility that turns the JX-05 Bluetooth ring remote into a presentation controller. Press the up/down buttons to navigate between slides.
 
-The JX-05 ring registers as a BLE digitizer/touchpad rather than a keyboard, which means it doesn't work out of the box with presentation software. This tool bridges the gap by reading the ring's raw HID touch events and converting swipe gestures into Page Down / Page Up keystrokes.
+The JX-05 ring registers as a BLE digitizer/touchpad rather than a keyboard, which means it doesn't work out of the box with presentation software. This tool bridges the gap by reading the ring's raw HID touch events and converting button presses into Page Down / Page Up keystrokes.
 
 Works with any presentation tool that supports Page Up/Page Down: Keynote, Google Slides, PowerPoint, reveal.js, etc.
 
@@ -51,9 +51,10 @@ This copies the binary to `/usr/local/bin/ringbridge`.
 ./ringbridge
 ```
 
-3. Open your presentation and start swiping:
-   - **Clockwise** = Next slide (Page Down)
-   - **Counter-clockwise** = Previous slide (Page Up)
+3. Open your presentation and use the ring's up/down buttons:
+   - One direction = **Next slide** (Page Down)
+   - Other direction = **Previous slide** (Page Up)
+   - Try both to see which is which — it depends on how you wear the ring
 
 4. Press `Ctrl+C` to stop
 
