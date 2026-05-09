@@ -33,38 +33,14 @@ func checkSwipe() {
     if abs(delta) > 800 {
         lastNavTime = now
         if delta > 0 {
-            // Y increasing = swipe down = Page Down = next slide
             print("→ NEXT (PageDown) delta=\(delta)")
             sendKey(0x79)  // Page Down
         } else {
-            // Y decreasing = swipe up = Page Up = previous slide
             print("← PREV (PageUp) delta=\(delta)")
             sendKey(0x74)  // Page Up
         }
         yValues.removeAll()
     }
-}
-
-let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-
-let matching: [String: Any] = [
-    kIOHIDVendorIDKey as String: 0xFFFF
-]
-IOHIDManagerSetDeviceMatching(manager, matching as CFDictionary)
-IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
-IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
-
-let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
-print("Ring Bridge - JX-05 → PageUp/PageDown")
-print("Found \(devices.count) device(s)")
-for device in devices {
-    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? "unknown"
-    print("  - \(product)")
-}
-
-if devices.isEmpty {
-    print("ERROR: JX-05 not found! Make sure the ring is connected via Bluetooth.")
-    exit(1)
 }
 
 let callback: IOHIDValueCallback = { context, result, sender, value in
@@ -74,15 +50,9 @@ let callback: IOHIDValueCallback = { context, result, sender, value in
     let intValue = IOHIDValueGetIntegerValue(value)
     let now = ProcessInfo.processInfo.systemUptime
 
-    // Only process events from JX-05
-    let device = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
-    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? ""
-    guard product == "JX-05" else { return }
-
     // Track Y-axis (usage 49) on Generic Desktop page (1)
     if usagePage == 1 && usage == 49 {
         yValues.append((value: Int(intValue), time: now))
-        // Keep only last 500ms
         yValues = yValues.filter { now - $0.time < 0.5 }
         checkSwipe()
     }
@@ -93,9 +63,37 @@ let callback: IOHIDValueCallback = { context, result, sender, value in
     }
 }
 
-IOHIDManagerRegisterInputValueCallback(manager, callback, nil)
+// Find JX-05 devices and register callbacks directly on them
+let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+IOHIDManagerSetDeviceMatching(manager, nil)  // match all to find JX-05
+IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
+IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
 
-print("Listening... swipe ring clockwise=next, counter-clockwise=prev")
+let allDevices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
+var jx05Devices: [IOHIDDevice] = []
+
+for device in allDevices {
+    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? ""
+    if product == "JX-05" {
+        jx05Devices.append(device)
+    }
+}
+
+print("Ring Bridge - JX-05 → PageUp/PageDown")
+print("Found \(jx05Devices.count) JX-05 device(s) (out of \(allDevices.count) total)")
+
+if jx05Devices.isEmpty {
+    print("ERROR: JX-05 not found! Make sure the ring is connected via Bluetooth.")
+    exit(1)
+}
+
+// Register callback only on JX-05 devices, not the manager
+for device in jx05Devices {
+    IOHIDDeviceRegisterInputValueCallback(device, callback, nil)
+    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? "unknown"
+    print("  Listening on: \(product)")
+}
+
 print("Press Ctrl+C to stop.\n")
 
 CFRunLoopRun()
