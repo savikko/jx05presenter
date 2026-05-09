@@ -104,6 +104,13 @@ You can adjust these constants in `ringbridge.swift`:
 | `MIN_SAMPLES` | `4` | Minimum data points before detecting a swipe |
 | Delta threshold | `800` | Minimum Y-axis movement to trigger (in `checkSwipe()`) |
 
+## Upgrade
+
+```bash
+brew upgrade jx05presenter
+brew services restart jx05presenter
+```
+
 ## Uninstall
 
 ### Homebrew
