@@ -11,7 +11,6 @@ Works with any presentation tool that supports Page Up/Page Down: Keynote, Googl
 ## Requirements
 
 - macOS (tested on macOS 15+)
-- Swift compiler (included with Xcode or Xcode Command Line Tools)
 - JX-05 ring remote paired via Bluetooth
 
 ## Install
