@@ -74,6 +74,11 @@ let callback: IOHIDValueCallback = { context, result, sender, value in
     let intValue = IOHIDValueGetIntegerValue(value)
     let now = ProcessInfo.processInfo.systemUptime
 
+    // Only process events from JX-05
+    let device = Unmanaged<IOHIDDevice>.fromOpaque(sender!).takeUnretainedValue()
+    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? ""
+    guard product == "JX-05" else { return }
+
     // Track Y-axis (usage 49) on Generic Desktop page (1)
     if usagePage == 1 && usage == 49 {
         yValues.append((value: Int(intValue), time: now))
