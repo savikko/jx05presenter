@@ -14,6 +14,14 @@ Works with any presentation tool that supports Page Up/Page Down: Keynote, Googl
 
 ## Install
 
+### Homebrew (recommended)
+
+```bash
+brew install savikko/tap/jx05presenter
+```
+
+### From source
+
 ```bash
 # Install Xcode Command Line Tools (if not already installed)
 xcode-select --install
