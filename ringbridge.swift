@@ -69,52 +69,56 @@ func sendKey(_ keyCode: CGKeyCode) {
 func checkSwipe() {
     let now = ProcessInfo.processInfo.systemUptime
     guard now - lastNavTime > COOLDOWN else { return }
-    guard yValues.count >= MIN_SAMPLES && xValues.count >= MIN_SAMPLES else { return }
 
     let recentY = yValues.filter { now - $0.time < 0.4 }
     let recentX = xValues.filter { now - $0.time < 0.4 }
-    guard recentY.count >= MIN_SAMPLES && recentX.count >= MIN_SAMPLES else { return }
 
-    let deltaY = recentY.last!.value - recentY.first!.value
-    let deltaX = recentX.last!.value - recentX.first!.value
-
-    guard abs(deltaY) > SWIPE_THRESHOLD || abs(deltaX) > SWIPE_THRESHOLD else { return }
-
-    lastNavTime = now
-    swipeFired = true
-
-    if abs(deltaY) >= abs(deltaX) {
-        // Vertical swipe dominant
-        if deltaY > 0 {
-            print("SWIPE DOWN (next) deltaY=\(deltaY)")
-            sendKey(config.swipeDown)
-        } else {
-            print("SWIPE UP (prev) deltaY=\(deltaY)")
-            sendKey(config.swipeUp)
-        }
-    } else {
-        // Horizontal swipe dominant
-        if deltaX > 0 {
-            print("SWIPE RIGHT deltaX=\(deltaX)")
-            sendKey(config.swipeRight)
-        } else {
-            print("SWIPE LEFT deltaX=\(deltaX)")
-            sendKey(config.swipeLeft)
+    // Check vertical swipe (Y-axis)
+    if recentY.count >= MIN_SAMPLES {
+        let delta = recentY.last!.value - recentY.first!.value
+        if abs(delta) > SWIPE_THRESHOLD {
+            lastNavTime = now
+            swipeFired = true
+            if delta > 0 {
+                print("SWIPE DOWN (next) delta=\(delta)")
+                sendKey(config.swipeDown)
+            } else {
+                print("SWIPE UP (prev) delta=\(delta)")
+                sendKey(config.swipeUp)
+            }
+            yValues.removeAll()
+            xValues.removeAll()
+            return
         }
     }
 
-    xValues.removeAll()
-    yValues.removeAll()
+    // Check horizontal swipe (X-axis)
+    if recentX.count >= MIN_SAMPLES {
+        let delta = recentX.last!.value - recentX.first!.value
+        if abs(delta) > SWIPE_THRESHOLD {
+            lastNavTime = now
+            swipeFired = true
+            if delta > 0 {
+                print("SWIPE RIGHT delta=\(delta)")
+                sendKey(config.swipeRight)
+            } else {
+                print("SWIPE LEFT delta=\(delta)")
+                sendKey(config.swipeLeft)
+            }
+            xValues.removeAll()
+            yValues.removeAll()
+            return
+        }
+    }
 }
 
 func checkTap() {
     let now = ProcessInfo.processInfo.systemUptime
     guard !swipeFired else { return }
     guard now - lastNavTime > COOLDOWN else { return }
-    guard yValues.count >= 2 && xValues.count >= 2 else { return }
 
-    let deltaY = abs((yValues.last?.value ?? 0) - (yValues.first?.value ?? 0))
-    let deltaX = abs((xValues.last?.value ?? 0) - (xValues.first?.value ?? 0))
+    let deltaY = yValues.count >= 2 ? abs(yValues.last!.value - yValues.first!.value) : 0
+    let deltaX = xValues.count >= 2 ? abs(xValues.last!.value - xValues.first!.value) : 0
 
     if deltaY < TAP_THRESHOLD && deltaX < TAP_THRESHOLD {
         lastNavTime = now
@@ -123,12 +127,18 @@ func checkTap() {
     }
 }
 
+let debug = CommandLine.arguments.contains("--debug")
+
 let hidCallback: IOHIDValueCallback = { context, result, sender, value in
     let element = IOHIDValueGetElement(value)
     let usagePage = IOHIDElementGetUsagePage(element)
     let usage = IOHIDElementGetUsage(element)
     let intValue = IOHIDValueGetIntegerValue(value)
     let now = ProcessInfo.processInfo.systemUptime
+
+    if debug {
+        print("HID: page=\(usagePage) usage=\(usage) value=\(intValue)")
+    }
 
     if usagePage == 1 {
         if usage == 48 {
