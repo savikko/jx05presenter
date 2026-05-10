@@ -2,7 +2,7 @@
 
 <img src="jx05-ring.png" alt="JX-05 Ring Remote" width="200" align="right">
 
-A macOS utility that turns the JX-05 Bluetooth ring remote into a presentation controller.
+A macOS and Windows utility that turns the JX-05 Bluetooth ring remote into a presentation controller.
 
 The JX-05 ring registers as a BLE digitizer/touchpad rather than a keyboard, which means it doesn't work out of the box with presentation software. This tool bridges the gap by reading the ring's raw HID touch events and converting gestures into keystrokes.
 
@@ -12,38 +12,43 @@ Works with any presentation tool that supports keyboard navigation: Keynote, Goo
 
 ## Requirements
 
-- macOS (tested on macOS 15+)
+- macOS (tested on macOS 15+) or Windows 10+
 - JX-05 ring remote paired via Bluetooth
 
 ## Install
 
-### Homebrew (recommended)
+### macOS — Homebrew (recommended)
 
 ```bash
 brew install savikko/tap/jx05presenter
 ```
 
-### From source
+### macOS — From source
 
 ```bash
-# Install Xcode Command Line Tools (if not already installed)
 xcode-select --install
-
-# Clone and build
 git clone https://github.com/savikko/jx05presenter.git
 cd jx05presenter
 make build
-```
-
-To install system-wide:
-
-```bash
 sudo make install
 ```
 
-This copies the binary to `/usr/local/bin/ringbridge`.
+### Windows
+
+Download `ringbridge.exe` from the [latest release](https://github.com/savikko/jx05presenter/releases) and place it anywhere on your system.
+
+To build from source (requires [Rust](https://rustup.rs/)):
+
+```bash
+cd windows
+cargo build --release
+```
+
+The binary will be at `windows\target\release\ringbridge.exe`.
 
 ## Usage
+
+### macOS
 
 1. Pair the JX-05 ring with your Mac via Bluetooth Settings
 2. Start the service:
@@ -72,7 +77,15 @@ To run manually instead (foreground):
 ringbridge
 ```
 
-### Accessibility Permission
+### Windows
+
+1. Pair the JX-05 ring with your PC via Bluetooth Settings
+2. Run `ringbridge.exe` (double-click or from a terminal)
+3. Use the ring gestures — same as macOS above
+
+No special permissions are needed on Windows. To run at startup, place a shortcut to `ringbridge.exe` in your Startup folder (`Win+R` → `shell:startup`).
+
+### Accessibility Permission (macOS only)
 
 The first time you press a button on the ring, macOS will show a permission dialog. To enable it:
 
@@ -102,11 +115,12 @@ This tool:
 
 ### Key Mappings
 
-Create `~/.config/ringbridge/config.json` to customize which keys the ring gestures produce:
+Create a config file to customize which keys the ring gestures produce:
 
-```bash
-mkdir -p ~/.config/ringbridge
-cat > ~/.config/ringbridge/config.json << 'EOF'
+- **macOS**: `~/.config/ringbridge/config.json`
+- **Windows**: `%APPDATA%\ringbridge\config.json`
+
+```json
 {
   "swipe_up": "pageup",
   "swipe_down": "pagedown",
@@ -114,13 +128,15 @@ cat > ~/.config/ringbridge/config.json << 'EOF'
   "swipe_right": "right",
   "tap": "space"
 }
-EOF
 ```
 
-The values shown above are the defaults. You only need to create this file if you want to change them. Restart the service after editing:
+The values shown above are the defaults. You only need to create this file if you want to change them. Restart after editing:
 
 ```bash
+# macOS
 brew services restart jx05presenter
+
+# Windows — restart ringbridge.exe
 ```
 
 Available key names: `pageup`, `pagedown`, `left`, `right`, `up`, `down`, `space`, `return`, `escape`, `tab`, `f5`, `f11`, `a`-`z`.

@@ -1,0 +1,9 @@
+# macOS build
+ringbridge
+ringbridge_debug
+
+# Rust build (Windows port)
+windows/target/
+
+# macOS
+.DS_Store

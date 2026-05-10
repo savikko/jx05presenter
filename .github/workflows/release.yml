@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,18 +24,11 @@ jobs:
         id: sha
         run: echo "sha256=$(shasum -a 256 ringbridge-${{ github.ref_name }}-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ringbridge-${{ github.ref_name }}-arm64.tar.gz
-          body: |
-            ## Install
-
-            ```bash
-            brew install savikko/tap/jx05presenter
-            ```
-
-            Binary SHA256: `${{ steps.sha.outputs.sha256 }}`
+          name: macos-build
+          path: ringbridge-${{ github.ref_name }}-arm64.tar.gz
 
       - name: Update Homebrew formula
         env:
@@ -51,3 +44,64 @@ jobs:
           git add Formula/jx05presenter.rb
           git commit -m "Update formula to ${{ github.ref_name }}"
           git push
+
+    outputs:
+      sha256: ${{ steps.sha.outputs.sha256 }}
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        working-directory: windows
+        run: cargo build --release
+
+      - name: Package
+        run: Compress-Archive -Path windows\target\release\ringbridge.exe -DestinationPath ringbridge-${{ github.ref_name }}-windows-x64.zip
+
+      - name: Get SHA256
+        id: sha
+        run: |
+          $hash = (Get-FileHash ringbridge-${{ github.ref_name }}-windows-x64.zip -Algorithm SHA256).Hash.ToLower()
+          echo "sha256=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: ringbridge-${{ github.ref_name }}-windows-x64.zip
+
+    outputs:
+      sha256: ${{ steps.sha.outputs.sha256 }}
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            macos-build/*
+            windows-build/*
+          body: |
+            ## Install
+
+            ### macOS (Homebrew)
+            ```bash
+            brew install savikko/tap/jx05presenter
+            ```
+
+            ### Windows
+            Download `ringbridge-${{ github.ref_name }}-windows-x64.zip`, extract, and run `ringbridge.exe`.
+
+            ## SHA256
+            - macOS: `${{ needs.build-macos.outputs.sha256 }}`
+            - Windows: `${{ needs.build-windows.outputs.sha256 }}`
