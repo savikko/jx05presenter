@@ -2,11 +2,13 @@
 
 <img src="jx05-ring.png" alt="JX-05 Ring Remote" width="200" align="right">
 
-A macOS utility that turns the JX-05 Bluetooth ring remote into a presentation controller. Press the up/down buttons to navigate between slides.
+A macOS utility that turns the JX-05 Bluetooth ring remote into a presentation controller.
 
-The JX-05 ring registers as a BLE digitizer/touchpad rather than a keyboard, which means it doesn't work out of the box with presentation software. This tool bridges the gap by reading the ring's raw HID touch events and converting button presses into Page Down / Page Up keystrokes.
+The JX-05 ring registers as a BLE digitizer/touchpad rather than a keyboard, which means it doesn't work out of the box with presentation software. This tool bridges the gap by reading the ring's raw HID touch events and converting gestures into keystrokes.
 
-Works with any presentation tool that supports Page Up/Page Down: Keynote, Google Slides, PowerPoint, reveal.js, etc.
+Supports five gestures: swipe up, swipe down, swipe left, swipe right, and center tap — all with configurable key mappings.
+
+Works with any presentation tool that supports keyboard navigation: Keynote, Google Slides, PowerPoint, reveal.js, etc.
 
 ## Requirements
 
@@ -52,10 +54,11 @@ brew services start jx05presenter
 
    This runs in the background and starts automatically on login.
 
-3. Open your presentation and use the ring's up/down buttons:
-   - One direction = **Next slide** (Page Down)
-   - Other direction = **Previous slide** (Page Up)
-   - Try both to see which is which — it depends on how you wear the ring
+3. Open your presentation and use the ring:
+   - **Swipe up/down** = Previous / Next slide (Page Up / Page Down)
+   - **Swipe left/right** = Left / Right arrow keys
+   - **Center tap** = Space bar
+   - Try both directions to see which is which — it depends on how you wear the ring
 
 To stop the service:
 
@@ -89,20 +92,49 @@ The JX-05 ring presents itself as a BLE digitizer device (HID Usage Page 13) wit
 
 This tool:
 
-1. Opens the HID device matching the JX-05's vendor ID (`0xFFFF`)
-2. Tracks Y-axis position changes over a 400ms sliding window
-3. When it detects a significant directional movement (delta > 800 on a 0-3500 range), it fires a Page Down or Page Up keystroke via `CGEvent`
-4. Applies a 500ms cooldown between navigations to prevent double-triggers
+1. Opens the HID device matching the JX-05's product name
+2. Tracks X and Y axis position changes over a 400ms sliding window
+3. When it detects significant movement (delta > 800 on a 0-3500 range), it determines the dominant axis (horizontal vs vertical) and fires the corresponding keystroke via `CGEvent`
+4. When a touch ends with minimal movement, it registers as a center tap
+5. Applies a 500ms cooldown between gestures to prevent double-triggers
 
 ## Configuration
+
+### Key Mappings
+
+Create `~/.config/ringbridge/config.json` to customize which keys the ring gestures produce:
+
+```bash
+mkdir -p ~/.config/ringbridge
+cat > ~/.config/ringbridge/config.json << 'EOF'
+{
+  "swipe_up": "pageup",
+  "swipe_down": "pagedown",
+  "swipe_left": "left",
+  "swipe_right": "right",
+  "tap": "space"
+}
+EOF
+```
+
+The values shown above are the defaults. You only need to create this file if you want to change them. Restart the service after editing:
+
+```bash
+brew services restart jx05presenter
+```
+
+Available key names: `pageup`, `pagedown`, `left`, `right`, `up`, `down`, `space`, `return`, `escape`, `tab`, `f5`, `f11`, `a`-`z`.
+
+### Tuning
 
 You can adjust these constants in `ringbridge.swift`:
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `COOLDOWN` | `0.5` | Seconds between slide changes |
+| `COOLDOWN` | `0.5` | Seconds between gestures |
 | `MIN_SAMPLES` | `4` | Minimum data points before detecting a swipe |
-| Delta threshold | `800` | Minimum Y-axis movement to trigger (in `checkSwipe()`) |
+| `SWIPE_THRESHOLD` | `800` | Minimum axis movement to trigger a swipe |
+| `TAP_THRESHOLD` | `200` | Maximum movement to register as a tap |
 
 ## Upgrade
 
