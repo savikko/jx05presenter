@@ -107,9 +107,11 @@ This tool:
 
 1. Opens the HID device matching the JX-05's product name
 2. Tracks X and Y axis position changes over a 400ms sliding window
-3. When it detects significant movement (delta > 800 on a 0-3500 range), it determines the dominant axis (horizontal vs vertical) and fires the corresponding keystroke via `CGEvent`
+3. When it detects significant movement (delta > 800 on a 0-3500 range), it determines the dominant axis (horizontal vs vertical) and fires the corresponding keystroke
 4. When a touch ends with minimal movement, it registers as a center tap
 5. Applies a 500ms cooldown between gestures to prevent double-triggers
+
+On macOS, keystrokes are injected via `CGEvent`. On Windows, via `SendInput`.
 
 ## Configuration
 
@@ -143,35 +145,53 @@ Available key names: `pageup`, `pagedown`, `left`, `right`, `up`, `down`, `space
 
 ### Tuning
 
-You can adjust these constants in `ringbridge.swift`:
+These constants can be adjusted in the source (`ringbridge.swift` on macOS, `windows/src/main.rs` on Windows):
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `COOLDOWN` | `0.5` | Seconds between gestures |
+| `COOLDOWN` | `0.5s` / `500ms` | Minimum time between gestures |
 | `MIN_SAMPLES` | `4` | Minimum data points before detecting a swipe |
 | `SWIPE_THRESHOLD` | `800` | Minimum axis movement to trigger a swipe |
 | `TAP_THRESHOLD` | `200` | Maximum movement to register as a tap |
 
+### Debugging
+
+Run with `--debug` to see raw HID events from the ring:
+
+```bash
+ringbridge --debug
+```
+
 ## Upgrade
+
+### macOS
 
 ```bash
 brew upgrade jx05presenter
 brew services restart jx05presenter
 ```
 
+### Windows
+
+Download the latest `ringbridge.exe` from [releases](https://github.com/savikko/jx05presenter/releases) and replace the old one.
+
 ## Uninstall
 
-### Homebrew
+### macOS — Homebrew
 
 ```bash
 brew uninstall jx05presenter
 ```
 
-### From source
+### macOS — From source
 
 ```bash
 sudo make uninstall
 ```
+
+### Windows
+
+Delete `ringbridge.exe` and remove the startup shortcut if you created one.
 
 ## License
 
