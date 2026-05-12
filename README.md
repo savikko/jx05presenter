@@ -99,13 +99,22 @@ brew services restart jx05presenter
 
 This is required for the tool to inject keystrokes.
 
+### Troubleshooting: Ring not responding after reconnection
+
+If the ring disconnects (e.g. goes out of range or sleeps) and stops working after reconnecting:
+
+- **v1.7.0+** handles this automatically via hot-plug detection — the service detects the reconnection and re-registers without a restart.
+- On older versions, restart the service: `brew services restart jx05presenter`
+- Check the log for status: `cat /opt/homebrew/var/log/ringbridge.log`
+- If the log shows "JX-05 connected", the ring is working. If it shows "Waiting for JX-05 device...", the ring hasn't fully reconnected via Bluetooth yet.
+
 ## How it works
 
 The JX-05 ring presents itself as a BLE digitizer device (HID Usage Page 13) with a circular touchpad. When you swipe around the ring, it sends a stream of X/Y coordinate updates.
 
 This tool:
 
-1. Opens the HID device matching the JX-05's product name
+1. Monitors for HID devices matching the JX-05's product name (hot-plug aware — detects connect/disconnect automatically)
 2. Tracks X and Y axis position changes over a 400ms sliding window
 3. When it detects significant movement (delta > 800 on a 0-3500 range), it determines the dominant axis (horizontal vs vertical) and fires the corresponding keystroke
 4. When a touch ends with minimal movement, it registers as a center tap
