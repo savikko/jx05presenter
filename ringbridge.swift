@@ -165,37 +165,34 @@ let hidCallback: IOHIDValueCallback = { context, result, sender, value in
 
 // --- Device Setup ---
 
-let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-IOHIDManagerSetDeviceMatching(manager, nil)
-IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
-IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
-
-let allDevices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
-var jx05Devices: [IOHIDDevice] = []
-
-for device in allDevices {
+let matchCallback: IOHIDDeviceCallback = { context, result, sender, device in
     let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? ""
     if product == "JX-05" {
-        jx05Devices.append(device)
+        print("JX-05 connected — registering callbacks")
+        IOHIDDeviceRegisterInputValueCallback(device, hidCallback, nil)
     }
 }
 
+let removalCallback: IOHIDDeviceCallback = { context, result, sender, device in
+    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? ""
+    if product == "JX-05" {
+        print("JX-05 disconnected — waiting for reconnect")
+        xValues.removeAll()
+        yValues.removeAll()
+        swipeFired = false
+    }
+}
+
+let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+IOHIDManagerSetDeviceMatching(manager, nil)
+IOHIDManagerRegisterDeviceMatchingCallback(manager, matchCallback, nil)
+IOHIDManagerRegisterDeviceRemovalCallback(manager, removalCallback, nil)
+IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
+IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+
 print("Ring Bridge - JX-05 Gesture Controller")
 print("Mappings: up=\(config.swipeUp) down=\(config.swipeDown) left=\(config.swipeLeft) right=\(config.swipeRight) tap=\(config.tap)")
-print("Found \(jx05Devices.count) JX-05 device(s) (out of \(allDevices.count) total)")
-
-if jx05Devices.isEmpty {
-    print("ERROR: JX-05 not found! Make sure the ring is connected via Bluetooth.")
-    exit(1)
-}
-
-for device in jx05Devices {
-    IOHIDDeviceRegisterInputValueCallback(device, hidCallback, nil)
-    let product = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String ?? "unknown"
-    print("  Listening on: \(product)")
-}
-
 print("Config: ~/.config/ringbridge/config.json")
-print("Press Ctrl+C to stop.\n")
+print("Waiting for JX-05 device...\n")
 
 CFRunLoopRun()
