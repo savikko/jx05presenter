@@ -3,6 +3,8 @@ import IOKit
 import IOKit.hid
 import CoreGraphics
 
+setbuf(stdout, nil)
+
 // --- Configuration ---
 
 struct KeyMapping {
